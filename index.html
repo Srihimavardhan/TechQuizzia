@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logo Quiz Challenge!</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Add custom CSS for responsiveness */
+    /* Adjust styles for smaller screens */
+    @media only screen and (max-width: 600px) {
+      .container {
+        width: 90%;
+        margin: auto;
+      }
+      .logo-container {
+        margin-bottom: 20px;
+      }
+      .answer-section {
+        margin-bottom: 20px;
+      }
+      #timer, #message {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Logo Quiz!</h1>
+    <p>Test your brand knowledge. Guess the logo in 20 seconds!</p>
+    <div class="logo-container">
+      <img id="logo" src="" alt="Logo">
+    </div>
+    <div class="answer-section">
+      <input type="text" id="answer" placeholder="Type your guess..." autofocus>
+      <button id="submit">Submit</button>
+    </div>
+    <p id="timer">Time Remaining: 20</p>
+    <p id="message"></p>
+  </div>
+
+  <script>let logos = [];
+let currentLogoIndex = 0;
+let timeLeft = 20;
+let timer;
+let score = 0;
+
+async function getId() {
+  try {
+    // Fetch data from the server
+    const response = await fetch("http://192.168.35.140:3000/");
+    const data = await response.json();
+    // Assign fetched data to the global logos variable
+    logos = data;
+    // Start the quiz after fetching data
+    startQuiz();
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+}
+
+function startQuiz() {
+  // Display the first logo
+  displayLogo();
+  // Start the timer
+}
+
+function displayLogo() {
+    document.getElementById("logo").src = logos[currentLogoIndex].image_url;
+      startTimer();
+
+}
+
+function startTimer() {
+  clearInterval(timer); // Clear any existing timer
+    timer = setInterval(function () {
+        timeLeft--;
+        document.getElementById("timer").textContent = `Time Remaining: ${timeLeft}`;
+        if (timeLeft === 0) {
+            clearInterval(timer);
+            checkAnswer(false); // Submit button wasn't clicked
+        }
+    }, 1000);
+}
+
+async function checkAnswer(submitted) {
+  let answer = document.getElementById("answer").value.trim().toLowerCase();
+  let correctAnswer = logos[currentLogoIndex].answer.toLowerCase(); // Extract answer
+
+  if (submitted && answer === correctAnswer) {
+    document.getElementById("message").textContent = "Correct!";
+    score++;
+  }
+
+  timeLeft = 20; // Reset timer for next round
+  currentLogoIndex++;
+
+  if (currentLogoIndex < logos.length) {
+    document.getElementById("answer").value = "";
+    displayLogo();
+    startTimer();
+  } else {
+    clearInterval(timer);
+    
+    console.log(score);
+    const username = localStorage.getItem("username");
+      await sendScoreToAPI(username,score)
+      alert(`${username} Score is ${score}`)
+    document.getElementById("message").textContent = "Quiz Finished!";
+    document.getElementById("submit").disabled = true;
+  }
+}
+
+// Start the quiz when the page loads
+getId();
+
+document.getElementById("submit").addEventListener("click", function() {
+  checkAnswer(true); // Submit button was clicked
+});
+async function sendScoreToAPI(username,score) {
+  try {
+    const response = await fetch(`http://192.168.35.140:3000/scores`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ username:username,score: score })
+    });
+      if (response.ok) {
+          setTimeout(() => {
+              window.location.href = "/hello.html";
+          }, 1000);
+      }
+
+   
+  } catch (error) {
+    console.error("Error sending score to API:", error);
+  }
+}
+</script>
+</body>
+</html>
